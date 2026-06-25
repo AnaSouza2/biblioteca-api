@@ -2,9 +2,27 @@ import client from "../config/database.js";
 
 export async function listarLivros(req, res) {
     try {
-        const resultado = await client.query(
-            "SELECT * FROM livros"
-        );
+        const { status, titulo } = req.query;
+
+        let sql = "SELECT * FROM livros";
+        const filtros = [];
+        const valores = [];
+
+        if (status) {
+            valores.push(status);
+            filtros.push(`status = $${valores.length}`);
+        }
+
+        if (titulo) {
+            valores.push(`%${titulo}%`);
+            filtros.push(`titulo ILIKE $${valores.length}`);
+        }
+
+        if (filtros.length > 0) {
+            sql += ` WHERE ${filtros.join(" AND ")}`;
+        }
+
+        const resultado = await client.query(sql, valores);
 
         return res.json(resultado.rows);
 
@@ -12,11 +30,9 @@ export async function listarLivros(req, res) {
         console.error(error);
 
         return res.status(500).json({
-            mensagem: "Erro interno no servidor"
+            mensagem: error.message
         });
     }
-
-    
 }
 
 export async function buscarLivroPorId(req, res) {
