@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS livros (
+    id SERIAL PRIMARY KEY,
+    titulo VARCHAR(255) NOT NULL,
+    autor VARCHAR(255) NOT NULL,
+    status VARCHAR(50) NOT NULL
+);
