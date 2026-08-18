@@ -1,15 +1,10 @@
 import client from "../config/database.js";
+import {
+    idInvalido,
+    textoInvalido
+} from "../utils/validacoes.js";
 
 const STATUS_PERMITIDOS = [ "quero ler", "lendo", "lido"];
-
-function idInvalido(id){
-    return !Number.isInteger(id) || id <= 0;
-
-}
-
-function textoInvalido(valor){
-    return typeof valor !== "string" || valor.trim().length === 0;
-}
 
 export async function listarLivros(req, res) {
     try {
@@ -213,3 +208,4 @@ export async function deletarLivro(req, res) {
         }); 
     }
 }
+
