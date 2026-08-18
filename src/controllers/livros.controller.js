@@ -1,5 +1,16 @@
 import client from "../config/database.js";
 
+const STATUS_PERMITIDOS = [ "quero ler", "lendo", "lido"];
+
+function idInvalido(id){
+    return !Number.isInteger(id) || id <= 0;
+
+}
+
+function textoInvalido(valor){
+    return typeof valor !== "string" || valor.trim().length === 0;
+}
+
 export async function listarLivros(req, res) {
     try {
         const { status, titulo } = req.query;
@@ -39,6 +50,12 @@ export async function buscarLivroPorId(req, res) {
     try {
         const id = Number(req.params.id);
 
+        if(idInvalido(id)){
+            return res.status(400).json({
+                mensagem: "O ID deve ser um número inteiro positivo"
+            });
+        }
+
         const resultado = await client.query(
             "SELECT * FROM livros WHERE id = $1",
             [id]
@@ -67,9 +84,21 @@ export async function criarLivro(req, res) {
     try {
         const { titulo, autor, status } = req.body;
 
-        if(!titulo || !autor || !status){
+        if( textoInvalido(titulo) ||
+            textoInvalido(autor) ||
+            textoInvalido(status)
+            ) {
+
             return res.status(400).json({
                 mensagem: "Título, autor e status são obrigatórios"
+            });
+        }
+
+        
+
+        if(!STATUS_PERMITIDOS.includes(status.toLowerCase())){
+            return res.status(400).json({
+                mensagem: `Status inválido. Use: ${STATUS_PERMITIDOS.join(", ")}`
             });
         }
 
@@ -79,7 +108,7 @@ export async function criarLivro(req, res) {
             VALUES($1, $2, $3)
             RETURNING *
             `,
-            [titulo, autor, status]
+            [titulo.trim(), autor.trim(), status.toLowerCase()]
         );
 
         return res.status(201).json(resultado.rows[0]);
@@ -97,11 +126,28 @@ export async function atualizarLivro(req, res) {
         const { titulo, autor, status } = req.body;
         const id = Number(req.params.id);
 
-        if(!titulo || !autor || !status){
+        if (idInvalido(id)) {
+            return res.status(400).json({
+                mensagem: "O ID deve ser um número inteiro positivo"
+            });
+        }
+
+        if( textoInvalido(titulo) ||
+            textoInvalido(autor) ||
+            textoInvalido(status)
+            ) {
             return res.status(400).json({
                 mensagem: "Título, autor e status são obrigatórios"
             });
         }
+
+        
+
+        if (!STATUS_PERMITIDOS.includes(status.toLowerCase())) {
+            return res.status(400).json({
+                mensagem: `Status inválido. Use: ${STATUS_PERMITIDOS.join(", ")}`
+        });
+}
 
         const resultado = await client.query(
             `
@@ -112,7 +158,7 @@ export async function atualizarLivro(req, res) {
             WHERE id = $4
             RETURNING *
             `,
-            [titulo, autor, status, id]
+            [titulo.trim(), autor.trim(), status.toLowerCase(), id]
         );
 
 
@@ -137,6 +183,11 @@ export async function deletarLivro(req, res) {
     try {
         const id = Number(req.params.id);
     
+        if (idInvalido(id)) {
+            return res.status(400).json({
+                mensagem: "O ID deve ser um número inteiro positivo"
+            });
+        }
         const resultado = await client.query(
             `
             DELETE FROM livros
