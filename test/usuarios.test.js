@@ -97,3 +97,77 @@ test("POST /usuarios deve rejeitar e-mail repetido", async () => {
     assert.equal(resposta.status, 409);
     assert.equal(resposta.body.mensagem, "E-mail já cadastrado");
 });
+
+test("GET /usuarios/abc deve rejeitar um ID inválido", async () => {
+    const resposta = await request(app).get("/usuarios/abc");
+
+    assert.equal(resposta.status, 400);
+    assert.equal(
+        resposta.body.mensagem,
+        "O ID deve ser um número inteiro positivo"
+    );
+});
+
+test("GET /usuarios/:id deve retornar o usuário", async () => {
+    const criacao = await request(app)
+        .post("/usuarios")
+        .send({
+            nome: "Usuário para buscar",
+            email: `busca.${Date.now()}@example.com`
+        });
+
+    const id = criacao.body.id;
+    const resposta = await request(app).get(`/usuarios/${id}`);
+
+    assert.equal(resposta.status, 200);
+    assert.equal(resposta.body.id, id);
+    assert.equal(resposta.body.nome, "Usuário para buscar");
+});
+
+test("PUT /usuarios/:id deve atualizar o usuário", async () => {
+    const criacao = await request(app)
+        .post("/usuarios")
+        .send({
+            nome: "Nome original",
+            email: `original.${Date.now()}@example.com`
+        });
+
+    const id = criacao.body.id;
+    const novoEmail = `atualizado.${Date.now()}@example.com`;
+
+    const resposta = await request(app)
+        .put(`/usuarios/${id}`)
+        .send({
+            nome: "Nome atualizado",
+            email: novoEmail
+        });
+
+    assert.equal(resposta.status, 200);
+    assert.equal(resposta.body.id, id);
+    assert.equal(resposta.body.nome, "Nome atualizado");
+    assert.equal(resposta.body.email, novoEmail);
+});
+
+test("DELETE /usuarios/:id deve apagar o usuário", async () => {
+    const criacao = await request(app)
+        .post("/usuarios")
+        .send({
+            nome: "Usuário para apagar",
+            email: `apagar.${Date.now()}@example.com`
+        });
+
+    const id = criacao.body.id;
+
+    const exclusao = await request(app)
+        .delete(`/usuarios/${id}`);
+
+    assert.equal(exclusao.status, 200);
+    assert.equal(
+        exclusao.body.mensagem,
+        "Usuário apagado com sucesso!"
+    );
+
+    const busca = await request(app).get(`/usuarios/${id}`);
+
+    assert.equal(busca.status, 404);
+});
