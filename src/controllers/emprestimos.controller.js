@@ -5,32 +5,67 @@ import {
     idInvalido
 } from "../utils/validacoes.js";
 
+const STATUS_EMPRESTIMO = [
+    "ativo",
+    "atrasado",
+    "devolvido"
+]
+
 export async function listarEmprestimos(req, res) {
-    try{
-        const resultado = await client.query(`
-            SELECT
-                e.id,
-                e.livro_id,
-                l.titulo AS livro,
-                e.usuario_id,
-                u.nome AS usuario,
-                e.data_emprestimo,
-                TO_CHAR(
-                e.data_prevista_devolucao,
-                'YYYY-MM-DD'
-                ) AS data_prevista_devolucao,
-                e.data_devolucao,
-                CASE
-                    WHEN e.data_devolucao IS NULL THEN 'ativo'
-                    ELSE 'devolvido'
-                END AS status
-            FROM emprestimos e 
-            JOIN livros l ON l.id = e.livro_id
-            JOIN usuarios u ON u.id = e.usuario_id
-            ORDER BY e.id
-        `);
-            return res.json(resultado.rows);
-    } catch(error){
+    try {
+        const { status } = req.query;
+        let statusFiltro = null;
+
+        if (status !== undefined) {
+            if (
+                typeof status !== "string" ||
+                !STATUS_EMPRESTIMO.includes(status.toLowerCase())
+            ) {
+                return res.status(400).json({
+                    mensagem: "Status inválido. Use: ativo, atrasado ou devolvido"
+                });
+            }
+
+            statusFiltro = status.toLowerCase();
+        }
+
+        const resultado = await client.query(
+            `
+            WITH emprestimos_detalhados AS (
+                SELECT
+                    e.id,
+                    e.livro_id,
+                    l.titulo AS livro,
+                    e.usuario_id,
+                    u.nome AS usuario,
+                    e.data_emprestimo,
+                    TO_CHAR(
+                        e.data_prevista_devolucao,
+                        'YYYY-MM-DD'
+                    ) AS data_prevista_devolucao,
+                    e.data_devolucao,
+                    CASE
+                        WHEN e.data_devolucao IS NOT NULL
+                            THEN 'devolvido'
+                        WHEN e.data_prevista_devolucao < CURRENT_DATE
+                            THEN 'atrasado'
+                        ELSE 'ativo'
+                    END AS status
+                FROM emprestimos e
+                JOIN livros l ON l.id = e.livro_id
+                JOIN usuarios u ON u.id = e.usuario_id
+            )
+            SELECT *
+            FROM emprestimos_detalhados
+            WHERE $1::text IS NULL
+               OR status = $1
+            ORDER BY id
+            `,
+            [statusFiltro]
+        );
+
+        return res.json(resultado.rows);
+    } catch (error) {
         console.error(error);
 
         return res.status(500).json({
@@ -38,6 +73,7 @@ export async function listarEmprestimos(req, res) {
         });
     }
 }
+
 export async function criarEmprestimo(req, res) {
     try {
         const {

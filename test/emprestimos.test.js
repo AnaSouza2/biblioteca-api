@@ -149,6 +149,27 @@ test("PATCH /emprestimos/:id/devolucao deve devolver o livro", async () => {
     assert.equal(devolucao.body.id, emprestimoId);
     assert.equal(devolucao.body.status, "devolvido");
     assert.ok(devolucao.body.data_devolucao);
+    
+    const listagem = await request(app)
+    .get("/emprestimos")
+    .query({
+        status: "devolvido"
+    });
+
+    const emprestimoDevolvido = listagem.body.find(
+        item => item.id === emprestimoId
+    );
+
+    assert.equal(listagem.status, 200);
+    assert.ok(emprestimoDevolvido);
+    assert.ok(
+        listagem.body.every(
+            item => item.status === "devolvido"
+        )
+);
+
+
+
 
     const novoEmprestimo = await request(app)
         .post("/emprestimos")
@@ -200,5 +221,86 @@ test("DELETE /usuarios/:id deve preservar usuário com empréstimo", async () =>
     assert.equal(
         resposta.body.mensagem,
         "Usuário não pode ser apagado porque possui empréstimos"
+    );
+});
+
+test("GET /emprestimos deve identificar empréstimo atrasado", async () => {
+    const { livroId, usuarioId } =
+        await prepararLivroEUsuario();
+
+    const criacao = await client.query(
+        `
+        INSERT INTO emprestimos (
+            livro_id,
+            usuario_id,
+            data_prevista_devolucao
+        )
+        VALUES ($1, $2, CURRENT_DATE - 1)
+        RETURNING id
+        `,
+        [livroId, usuarioId]
+    );
+
+    const emprestimoId = criacao.rows[0].id;
+
+    const resposta = await request(app)
+        .get("/emprestimos")
+        .query({
+            status: "atrasado"
+    });
+
+    const emprestimo = resposta.body.find(
+        item => item.id === emprestimoId
+    );
+
+    assert.equal(resposta.status, 200);
+    assert.ok(emprestimo);
+    assert.equal(emprestimo.status, "atrasado");
+    assert.ok(
+    resposta.body.every(item => item.status === "atrasado")
+    );
+});
+test("GET /emprestimos deve rejeitar filtro de status inválido", async () => {
+    const resposta = await request(app)
+        .get("/emprestimos")
+        .query({
+            status: "cancelado"
+        });
+
+    assert.equal(resposta.status, 400);
+    assert.equal(
+        resposta.body.mensagem,
+        "Status inválido. Use: ativo, atrasado ou devolvido"
+    );
+});
+test("GET /emprestimos deve filtrar empréstimos ativos", async () => {
+    const { livroId, usuarioId } =
+        await prepararLivroEUsuario();
+
+    const criacao = await request(app)
+        .post("/emprestimos")
+        .send({
+            livro_id: livroId,
+            usuario_id: usuarioId,
+            data_prevista_devolucao: gerarDataFutura()
+        });
+
+    const emprestimoId = criacao.body.id;
+
+    const resposta = await request(app)
+        .get("/emprestimos")
+        .query({
+            status: "ativo"
+        });
+
+    const emprestimo = resposta.body.find(
+        item => item.id === emprestimoId
+    );
+
+    assert.equal(resposta.status, 200);
+    assert.ok(emprestimo);
+    assert.equal(emprestimo.status, "ativo");
+    assert.ok(
+        resposta.body.every(item => item.status === "ativo")
     );
 });
