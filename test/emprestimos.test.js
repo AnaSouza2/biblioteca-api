@@ -160,3 +160,45 @@ test("PATCH /emprestimos/:id/devolucao deve devolver o livro", async () => {
 
     assert.equal(novoEmprestimo.status, 201);
 });
+test("DELETE /livros/:id deve preservar livro com empréstimo", async () => {
+    const { livroId, usuarioId } =
+        await prepararLivroEUsuario();
+
+    await request(app)
+        .post("/emprestimos")
+        .send({
+            livro_id: livroId,
+            usuario_id: usuarioId,
+            data_prevista_devolucao: gerarDataFutura()
+        });
+
+    const resposta = await request(app)
+        .delete(`/livros/${livroId}`);
+
+    assert.equal(resposta.status, 409);
+    assert.equal(
+        resposta.body.mensagem,
+        "Livro não pode ser apagado porque possui empréstimos"
+    );
+});
+test("DELETE /usuarios/:id deve preservar usuário com empréstimo", async () => {
+    const { livroId, usuarioId } =
+        await prepararLivroEUsuario();
+
+    await request(app)
+        .post("/emprestimos")
+        .send({
+            livro_id: livroId,
+            usuario_id: usuarioId,
+            data_prevista_devolucao: gerarDataFutura()
+        });
+
+    const resposta = await request(app)
+        .delete(`/usuarios/${usuarioId}`);
+
+    assert.equal(resposta.status, 409);
+    assert.equal(
+        resposta.body.mensagem,
+        "Usuário não pode ser apagado porque possui empréstimos"
+    );
+});

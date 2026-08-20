@@ -188,7 +188,16 @@ export async function deletarUsuario(req, res) {
             mensagem: "Usuário apagado com sucesso!"
         });
     } catch (error) {
-        console.error(error);
+        if ( 
+            error.code === "23001" ||
+            error.code === "23503"
+        ) {
+            return res.status(409).json({
+                mensagem: "Usuário não pode ser apagado porque possui empréstimos"
+            });
+    }
+
+    console.error(error);
 
         return res.status(500).json({
             mensagem: "Erro interno no servidor"

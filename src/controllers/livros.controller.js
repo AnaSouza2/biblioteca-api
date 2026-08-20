@@ -201,11 +201,20 @@ export async function deletarLivro(req, res) {
             mensagem: "Livro apagado com sucesso!"
     });
     } catch (error) {
+        if (  
+            error.code === "23001" ||
+            error.code === "23503"
+        ) {
+            return res.status(409).json({
+                mensagem: "Livro não pode ser apagado porque possui empréstimos"
+            });
+        }
+
         console.error(error);
 
         return res.status(500).json({
             mensagem: "Erro interno no servidor"
-        }); 
+        });
     }
 }
 
