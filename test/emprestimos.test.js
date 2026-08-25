@@ -304,3 +304,310 @@ test("GET /emprestimos deve filtrar empréstimos ativos", async () => {
         resposta.body.every(item => item.status === "ativo")
     );
 });
+
+test("GET /emprestimos/abc deve rejeitar ID inválido", async () => {
+    const resposta = await request(app)
+        .get("/emprestimos/abc");
+
+    assert.equal(resposta.status, 400);
+    assert.equal(
+        resposta.body.mensagem,
+        "O ID deve ser um número inteiro positivo"
+    );
+});
+
+test("GET /emprestimos/:id deve retornar o empréstimo", async () => {
+    const { livroId, usuarioId } =
+        await prepararLivroEUsuario();
+
+    const criacao = await request(app)
+        .post("/emprestimos")
+        .send({
+            livro_id: livroId,
+            usuario_id: usuarioId,
+            data_prevista_devolucao: gerarDataFutura()
+        });
+
+    const emprestimoId = criacao.body.id;
+
+    const resposta = await request(app)
+        .get(`/emprestimos/${emprestimoId}`);
+
+    assert.equal(resposta.status, 200);
+    assert.equal(resposta.body.id, emprestimoId);
+    assert.equal(resposta.body.livro_id, livroId);
+    assert.equal(resposta.body.usuario_id, usuarioId);
+    assert.equal(resposta.body.status, "ativo");
+});
+test("PATCH /emprestimos/:id/renovacao deve ampliar o prazo", async () => {
+    const { livroId, usuarioId } =
+        await prepararLivroEUsuario();
+
+    const criacao = await request(app)
+        .post("/emprestimos")
+        .send({
+            livro_id: livroId,
+            usuario_id: usuarioId,
+            data_prevista_devolucao: gerarDataFutura(7)
+        });
+
+    const emprestimoId = criacao.body.id;
+    const novaData = gerarDataFutura(14);
+
+    const resposta = await request(app)
+        .patch(`/emprestimos/${emprestimoId}/renovacao`)
+        .send({
+            data_prevista_devolucao: novaData
+        });
+
+    assert.equal(resposta.status, 200);
+    assert.equal(resposta.body.id, emprestimoId);
+    assert.equal(
+        resposta.body.data_prevista_devolucao,
+        novaData
+    );
+    assert.equal(resposta.body.status, "ativo");
+});
+test("PATCH renovacao deve exigir uma data posterior", async () => {
+    const { livroId, usuarioId } =
+        await prepararLivroEUsuario();
+
+    const dataAtual = gerarDataFutura(7);
+
+    const criacao = await request(app)
+        .post("/emprestimos")
+        .send({
+            livro_id: livroId,
+            usuario_id: usuarioId,
+            data_prevista_devolucao: dataAtual
+        });
+
+    const resposta = await request(app)
+        .patch(`/emprestimos/${criacao.body.id}/renovacao`)
+        .send({
+            data_prevista_devolucao: dataAtual
+        });
+
+    assert.equal(resposta.status, 400);
+    assert.equal(
+        resposta.body.mensagem,
+        "A nova data deve ser posterior ao prazo atual"
+    );
+});
+test("PATCH renovacao deve rejeitar empréstimo devolvido", async () => {
+    const { livroId, usuarioId } =
+        await prepararLivroEUsuario();
+
+    const criacao = await request(app)
+        .post("/emprestimos")
+        .send({
+            livro_id: livroId,
+            usuario_id: usuarioId,
+            data_prevista_devolucao: gerarDataFutura(7)
+        });
+
+    const emprestimoId = criacao.body.id;
+
+    await request(app)
+        .patch(`/emprestimos/${emprestimoId}/devolucao`);
+
+    const resposta = await request(app)
+        .patch(`/emprestimos/${emprestimoId}/renovacao`)
+        .send({
+            data_prevista_devolucao: gerarDataFutura(14)
+        });
+
+    assert.equal(resposta.status, 409);
+    assert.equal(
+        resposta.body.mensagem,
+        "Empréstimo devolvido não pode ser renovado"
+    );
+});
+
+test("GET /emprestimos deve rejeitar usuario_id inválido", async () => {
+    const resposta = await request(app)
+        .get("/emprestimos")
+        .query({
+            usuario_id: "abc"
+        });
+
+    assert.equal(resposta.status, 400);
+    assert.equal(
+        resposta.body.mensagem,
+        "O ID do usuário deve ser um número inteiro positivo"
+    );
+});
+test("GET /emprestimos deve filtrar pelo usuário e status", async () => {
+    const { livroId, usuarioId } =
+        await prepararLivroEUsuario();
+
+    const criacao = await request(app)
+        .post("/emprestimos")
+        .send({
+            livro_id: livroId,
+            usuario_id: usuarioId,
+            data_prevista_devolucao: gerarDataFutura()
+        });
+
+    const emprestimoId = criacao.body.id;
+
+    const resposta = await request(app)
+        .get("/emprestimos")
+        .query({
+            usuario_id: usuarioId,
+            status: "ativo"
+        });
+
+    const emprestimo = resposta.body.find(
+        item => item.id === emprestimoId
+    );
+
+    assert.equal(resposta.status, 200);
+    assert.ok(emprestimo);
+
+    assert.ok(
+        resposta.body.every(
+            item =>
+                item.usuario_id === usuarioId &&
+                item.status === "ativo"
+        )
+    );
+});
+
+test("GET /emprestimos deve rejeitar livro_id inválido", async () => {
+    const resposta = await request(app)
+        .get("/emprestimos")
+        .query({
+            livro_id: "abc"
+        });
+
+    assert.equal(resposta.status, 400);
+    assert.equal(
+        resposta.body.mensagem,
+        "O ID do livro deve ser um número inteiro positivo"
+    );
+});
+
+test("GET /emprestimos deve filtrar pelo livro e status", async () => {
+    const { livroId, usuarioId } =
+        await prepararLivroEUsuario();
+
+    const criacao = await request(app)
+        .post("/emprestimos")
+        .send({
+            livro_id: livroId,
+            usuario_id: usuarioId,
+            data_prevista_devolucao: gerarDataFutura()
+        });
+
+    const emprestimoId = criacao.body.id;
+
+    const resposta = await request(app)
+        .get("/emprestimos")
+        .query({
+            livro_id: livroId,
+            status: "ativo"
+        });
+
+    const emprestimo = resposta.body.find(
+        item => item.id === emprestimoId
+    );
+
+    assert.equal(resposta.status, 200);
+    assert.ok(emprestimo);
+
+    assert.ok(
+        resposta.body.every(
+            item =>
+                item.livro_id === livroId &&
+                item.status === "ativo"
+        )
+    );
+});
+test("livro deve refletir disponibilidade durante o empréstimo", async () => {
+    const { livroId, usuarioId } =
+        await prepararLivroEUsuario();
+
+    const antes = await request(app)
+        .get(`/livros/${livroId}`);
+
+    assert.equal(antes.status, 200);
+    assert.equal(antes.body.disponivel, true);
+
+    const criacao = await request(app)
+        .post("/emprestimos")
+        .send({
+            livro_id: livroId,
+            usuario_id: usuarioId,
+            data_prevista_devolucao: gerarDataFutura()
+        });
+
+    const durante = await request(app)
+        .get(`/livros/${livroId}`);
+
+    assert.equal(durante.status, 200);
+    assert.equal(durante.body.disponivel, false);
+
+    await request(app)
+        .patch(`/emprestimos/${criacao.body.id}/devolucao`);
+
+    const depois = await request(app)
+        .get(`/livros/${livroId}`);
+
+    assert.equal(depois.status, 200);
+    assert.equal(depois.body.disponivel, true);
+});
+
+test("GET /livros deve filtrar pela disponibilidade", async () => {
+    const { livroId, usuarioId } =
+        await prepararLivroEUsuario();
+
+    await request(app)
+        .post("/emprestimos")
+        .send({
+            livro_id: livroId,
+            usuario_id: usuarioId,
+            data_prevista_devolucao: gerarDataFutura()
+        });
+
+    const indisponiveis = await request(app)
+        .get("/livros")
+        .query({
+            disponivel: "false"
+        });
+
+    assert.equal(indisponiveis.status, 200);
+
+    assert.ok(
+        indisponiveis.body.some(
+            livro => livro.id === livroId
+        )
+    );
+
+    assert.ok(
+        indisponiveis.body.every(
+            livro => livro.disponivel === false
+        )
+    );
+
+    const disponiveis = await request(app)
+        .get("/livros")
+        .query({
+            disponivel: "true"
+        });
+
+    assert.equal(disponiveis.status, 200);
+
+    assert.ok(
+        disponiveis.body.every(
+            livro => livro.disponivel === true
+        )
+    );
+
+    assert.equal(
+        disponiveis.body.some(
+            livro => livro.id === livroId
+        ),
+        false
+    );
+});

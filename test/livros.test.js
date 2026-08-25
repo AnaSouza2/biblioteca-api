@@ -128,3 +128,16 @@ test("DELETE /livros/:id deve apagar um livro", async () => {
 
     assert.equal(busca.status, 404);
 });
+test("GET /livros deve rejeitar disponibilidade inválida", async () => {
+    const resposta = await request(app)
+        .get("/livros")
+        .query({
+            disponivel: "sim"
+        });
+
+    assert.equal(resposta.status, 400);
+    assert.equal(
+        resposta.body.mensagem,
+        "Disponível deve ser true ou false"
+    );
+});

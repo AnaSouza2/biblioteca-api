@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Usuários | Biblioteca</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+
+<body class="books-page users-modern-page">
+    <header class="books-topbar">
+        <a class="books-brand" href="/">
+            <span aria-hidden="true">B</span>
+            <strong>Biblioteca</strong>
+        </a>
+
+        <nav class="books-nav" aria-label="Navegação principal">
+            <a href="/">Visão geral</a>
+            <a href="/livros.html">Livros</a>
+            <a class="is-active" href="/usuarios.html" aria-current="page">Usuários</a>
+            <a href="/emprestimos.html">Empréstimos</a>
+        </nav>
+
+        <p class="books-connection" id="api-status" aria-live="polite">
+            <span aria-hidden="true"></span>
+            Conectando
+        </p>
+    </header>
+
+    <main class="books-workspace">
+        <header class="books-page-heading">
+            <div>
+                <h1>Usuários</h1>
+                <p>Cadastre leitores e mantenha os dados da biblioteca atualizados.</p>
+            </div>
+
+            <button class="primary-action" type="button" id="novo-usuario">
+                <span aria-hidden="true">＋</span> Novo usuário
+            </button>
+        </header>
+
+        <section class="inventory-summary" aria-label="Resumo de usuários">
+            <article>
+                <span class="summary-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="8" r="3.5"/>
+                        <path d="M5.5 21v-2.2A5.8 5.8 0 0 1 11.3 13h1.4a5.8 5.8 0 0 1 5.8 5.8V21"/>
+                    </svg>
+                </span>
+                <p><strong id="total-usuarios">—</strong><span>Usuários cadastrados</span></p>
+            </article>
+
+            <article>
+                <span class="summary-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M5 4h14v16H5zM8 8h8M8 12h5"/>
+                        <path d="m14 17 1.5 1.5L19 15"/>
+                    </svg>
+                </span>
+                <p><strong id="usuarios-com-emprestimo">—</strong><span>Com empréstimo ativo</span></p>
+            </article>
+
+            <article>
+                <span class="summary-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="9"/>
+                        <path d="m8 12 2.5 2.5L16.5 8"/>
+                    </svg>
+                </span>
+                <p><strong id="usuarios-sem-emprestimo">—</strong><span>Sem empréstimo ativo</span></p>
+            </article>
+        </section>
+
+        <section class="books-content" aria-labelledby="titulo-usuarios">
+            <header class="books-section-heading">
+                <div>
+                    <h2 id="titulo-usuarios">Usuários cadastrados</h2>
+                    <p id="contagem-usuarios">Carregando registros...</p>
+                </div>
+
+                <button class="quiet-action" type="button" id="atualizar-usuarios">
+                    Atualizar <span aria-hidden="true">↻</span>
+                </button>
+            </header>
+
+            <div class="books-data-panel">
+                <form class="books-toolbar users-toolbar" id="filtros-usuarios">
+                    <label class="search-field">
+                        <span class="visually-hidden">Buscar por nome ou e-mail</span>
+                        <span class="search-control">
+                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <circle cx="11" cy="11" r="6.5"/>
+                                <path d="m16 16 4 4"/>
+                            </svg>
+                            <input
+                                type="search"
+                                id="filtro-usuario"
+                                placeholder="Buscar por nome ou e-mail"
+                            >
+                        </span>
+                    </label>
+
+                    <div class="toolbar-actions">
+                        <button class="filter-action" type="submit">Filtrar</button>
+                        <button class="clear-action" type="button" id="limpar-usuarios">Limpar</button>
+                    </div>
+                </form>
+
+                <p class="page-feedback" id="mensagem-pagina" aria-live="polite"></p>
+
+                <div class="books-table-wrap">
+                    <table class="books-table users-modern-table">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>E-mail</th>
+                                <th>Cadastro</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lista-usuarios">
+                            <tr><td colspan="4">Carregando usuários...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p class="books-table-footer" id="contagem-rodape">Carregando usuários...</p>
+            </div>
+        </section>
+    </main>
+
+    <dialog class="book-drawer" id="dialog-usuario">
+        <div class="drawer-heading">
+            <h2 id="titulo-formulario">Novo usuário</h2>
+            <button class="drawer-close" type="button" id="fechar-formulario" aria-label="Fechar formulário">×</button>
+        </div>
+
+        <form class="drawer-form" id="formulario-usuario">
+            <label>
+                <span>Nome</span>
+                <input type="text" id="usuario-nome" autocomplete="name" required>
+            </label>
+            <label>
+                <span>E-mail</span>
+                <input type="email" id="usuario-email" autocomplete="email" required>
+            </label>
+
+            <p class="drawer-feedback" id="mensagem-formulario" aria-live="polite"></p>
+
+            <div class="drawer-actions">
+                <button class="cancel-action" type="button" id="cancelar-formulario">Cancelar</button>
+                <button class="primary-action" type="submit" id="salvar-usuario">Cadastrar usuário</button>
+            </div>
+        </form>
+    </dialog>
+
+    <script src="/usuarios.js?v=3"></script>
+</body>
+</html>

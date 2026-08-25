@@ -9,12 +9,14 @@ const STATUS_EMPRESTIMO = [
     "ativo",
     "atrasado",
     "devolvido"
-]
+];
 
 export async function listarEmprestimos(req, res) {
     try {
-        const { status } = req.query;
+        const { status, usuario_id, livro_id } = req.query;
         let statusFiltro = null;
+        let usuarioIdFiltro = null;
+        let livroIdFiltro = null;
 
         if (status !== undefined) {
             if (
@@ -27,6 +29,27 @@ export async function listarEmprestimos(req, res) {
             }
 
             statusFiltro = status.toLowerCase();
+        }
+
+
+        if(usuario_id !== undefined){
+            usuarioIdFiltro = Number(usuario_id);
+
+            if(idInvalido(usuarioIdFiltro)){
+                return res.status(400).json({
+                    mensagem: "O ID do usuário deve ser um número inteiro positivo"
+                });
+            }
+        }
+
+        if (livro_id !== undefined){
+            livroIdFiltro = Number(livro_id);
+
+            if(idInvalido(livroIdFiltro)) {
+                return res.status(400).json({
+                    mensagem: "O ID do livro deve ser um número inteiro positivo"
+                });
+            }
         }
 
         const resultado = await client.query(
@@ -57,11 +80,25 @@ export async function listarEmprestimos(req, res) {
             )
             SELECT *
             FROM emprestimos_detalhados
-            WHERE $1::text IS NULL
-               OR status = $1
+            WHERE (
+                $1::text IS NULL
+                OR status = $1
+            )
+            AND (
+                $2::int IS NULL
+                OR usuario_id = $2
+            )
+            AND (
+                $3::int IS NULL
+                OR livro_id = $3
+            )
             ORDER BY id
             `,
-            [statusFiltro]
+            [
+                statusFiltro,
+                usuarioIdFiltro,
+                livroIdFiltro
+            ]
         );
 
         return res.json(resultado.rows);
@@ -193,6 +230,144 @@ export async function devolverLivro(req, res) {
 
         return res.status(409).json({
             mensagem: "Empréstimo já foi devolvido"
+        });
+    } catch (error) {
+        console.error(error);
+
+        return res.status(500).json({
+            mensagem: "Erro interno no servidor"
+        });
+    }
+}
+
+export async function buscarEmprestimoPorId(req, res) {
+    try {
+        const id = Number(req.params.id);
+
+        if (idInvalido(id)) {
+            return res.status(400).json({
+                mensagem: "O ID deve ser um número inteiro positivo"
+            });
+        }
+
+        const resultado = await client.query(
+            `
+            SELECT
+                e.id,
+                e.livro_id,
+                l.titulo AS livro,
+                e.usuario_id,
+                u.nome AS usuario,
+                e.data_emprestimo,
+                TO_CHAR(
+                    e.data_prevista_devolucao,
+                    'YYYY-MM-DD'
+                ) AS data_prevista_devolucao,
+                e.data_devolucao,
+                CASE
+                    WHEN e.data_devolucao IS NOT NULL
+                        THEN 'devolvido'
+                    WHEN e.data_prevista_devolucao < CURRENT_DATE
+                        THEN 'atrasado'
+                    ELSE 'ativo'
+                END AS status
+            FROM emprestimos e
+            JOIN livros l ON l.id = e.livro_id
+            JOIN usuarios u ON u.id = e.usuario_id
+            WHERE e.id = $1
+            `,
+            [id]
+        );
+
+        const emprestimo = resultado.rows[0];
+
+        if (!emprestimo) {
+            return res.status(404).json({
+                mensagem: "Empréstimo não encontrado"
+            });
+        }
+
+        return res.json(emprestimo);
+    } catch (error) {
+        console.error(error);
+
+        return res.status(500).json({
+            mensagem: "Erro interno no servidor"
+        });
+    }
+}
+
+export async function renovarEmprestimo(req, res) {
+    try {
+        const id = Number(req.params.id);
+        const { data_prevista_devolucao } = req.body;
+
+        if (idInvalido(id)) {
+            return res.status(400).json({
+                mensagem: "O ID deve ser um número inteiro positivo"
+            });
+        }
+
+        if (dataInvalida(data_prevista_devolucao)) {
+            return res.status(400).json({
+                mensagem: "A data deve estar no formato AAAA-MM-DD"
+            });
+        }
+
+        if (dataAnteriorAHoje(data_prevista_devolucao)) {
+            return res.status(400).json({
+                mensagem: "A nova data não pode estar no passado"
+            });
+        }
+
+        const resultado = await client.query(
+            `
+            UPDATE emprestimos
+            SET data_prevista_devolucao = $1
+            WHERE id = $2
+              AND data_devolucao IS NULL
+              AND data_prevista_devolucao < $1::date
+            RETURNING
+                id,
+                livro_id,
+                usuario_id,
+                data_emprestimo,
+                data_prevista_devolucao::text,
+                data_devolucao
+            `,
+            [data_prevista_devolucao, id]
+        );
+
+        if (resultado.rowCount > 0) {
+            return res.json({
+                ...resultado.rows[0],
+                status: "ativo"
+            });
+        }
+
+        const existente = await client.query(
+            `
+            SELECT id, data_devolucao
+            FROM emprestimos
+            WHERE id = $1
+            `,
+            [id]
+        );
+
+        if (existente.rowCount === 0) {
+            return res.status(404).json({
+                mensagem: "Empréstimo não encontrado"
+            });
+        }
+
+        if (existente.rows[0].data_devolucao !== null) {
+            return res.status(409).json({
+                mensagem: "Empréstimo devolvido não pode ser renovado"
+            });
+        }
+
+        return res.status(400).json({
+            mensagem: "A nova data deve ser posterior ao prazo atual"
         });
     } catch (error) {
         console.error(error);

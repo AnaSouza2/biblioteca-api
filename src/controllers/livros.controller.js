@@ -8,25 +8,71 @@ const STATUS_PERMITIDOS = [ "quero ler", "lendo", "lido"];
 
 export async function listarLivros(req, res) {
     try {
-        const { status, titulo } = req.query;
+        const { status, titulo, disponivel } = req.query;
 
-        let sql = "SELECT * FROM livros";
+        let sql = `
+        SELECT
+            l.*,
+            NOT EXISTS (
+                SELECT 1
+                FROM emprestimos e
+                WHERE e.livro_id = l.id
+                    AND e.data_devolucao IS NULL
+            ) AS disponivel
+        FROM livros l
+        `;
         const filtros = [];
         const valores = [];
 
+        if (
+            disponivel !== undefined &&
+            disponivel !== "true" &&
+            disponivel !== "false"
+        ) {
+            return res.status(400).json({
+                mensagem: "Disponível deve ser true ou false"
+            });
+        }
+
+
         if (status) {
             valores.push(status);
-            filtros.push(`status = $${valores.length}`);
+            filtros.push(`l.status = $${valores.length}`);
         }
 
         if (titulo) {
             valores.push(`%${titulo}%`);
-            filtros.push(`titulo ILIKE $${valores.length}`);
+            filtros.push(`l.titulo ILIKE $${valores.length}`);
         }
+
+        if (disponivel === "true") {
+            filtros.push(`
+                NOT EXISTS (
+                    SELECT 1
+                    FROM emprestimos e
+                    WHERE e.livro_id = l.id
+                        AND e.data_devolucao IS NULL
+                )
+            `);
+        }
+
+        if (disponivel === "false") {
+            filtros.push(`
+                EXISTS (
+                    SELECT 1
+                    FROM emprestimos e
+                    WHERE e.livro_id = l.id
+                        AND e.data_devolucao IS NULL
+                )
+            `);
+        }
+
 
         if (filtros.length > 0) {
             sql += ` WHERE ${filtros.join(" AND ")}`;
         }
+
+        sql += " ORDER BY l.id";
 
         const resultado = await client.query(sql, valores);
 
@@ -36,7 +82,7 @@ export async function listarLivros(req, res) {
         console.error(error);
 
         return res.status(500).json({
-            mensagem: error.message
+            mensagem: "Erro interno no servidor"
         });
     }
 }
@@ -52,7 +98,18 @@ export async function buscarLivroPorId(req, res) {
         }
 
         const resultado = await client.query(
-            "SELECT * FROM livros WHERE id = $1",
+            `
+            SELECT
+                l.*,
+                NOT EXISTS (
+                    SELECT 1
+                    FROM emprestimos e
+                    WHERE e.livro_id = l.id
+                        AND e.data_devolucao IS NULL
+                ) AS disponivel
+            FROM livros l
+            WHERE l.id = $1
+            `,
             [id]
         );
 

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Livros | Biblioteca</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+
+<body class="books-page">
+    <header class="books-topbar">
+        <a class="books-brand" href="/">
+            <span aria-hidden="true">B</span>
+            <strong>Biblioteca</strong>
+        </a>
+
+        <nav class="books-nav" aria-label="Navegação principal">
+            <a href="/">Visão geral</a>
+            <a class="is-active" href="/livros.html" aria-current="page">
+                Livros
+            </a>
+            <a href="/usuarios.html">Usuários</a>
+            <a href="/emprestimos.html">Empréstimos</a>
+        </nav>
+
+        <p class="books-connection" id="api-status" aria-live="polite">
+            <span aria-hidden="true"></span>
+            Conectando
+        </p>
+    </header>
+
+    <main class="books-workspace">
+        <header class="books-page-heading">
+            <div>
+                <h1>Livros</h1>
+                <p>
+                    Consulte o acervo, acompanhe a disponibilidade e
+                    mantenha os registros atualizados.
+                </p>
+            </div>
+
+            <button class="primary-action" type="button" id="novo-livro">
+                <span aria-hidden="true">＋</span> Novo livro
+            </button>
+        </header>
+
+        <section class="inventory-summary" aria-label="Resumo do acervo">
+            <article>
+                <span class="summary-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v16H6.5A2.5 2.5 0 0 0 4 21.5v-16Z"/>
+                        <path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H13v16h4.5a2.5 2.5 0 0 1 2.5 2.5v-16Z"/>
+                    </svg>
+                </span>
+                <p>
+                    <strong id="total-livros">—</strong>
+                    <span>Livros no acervo</span>
+                </p>
+            </article>
+
+            <article>
+                <span class="summary-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="9"/>
+                        <path d="m8 12 2.5 2.5L16.5 8"/>
+                    </svg>
+                </span>
+                <p>
+                    <strong id="livros-disponiveis">—</strong>
+                    <span>Disponíveis</span>
+                </p>
+            </article>
+
+            <article>
+                <span class="summary-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="8" r="3.5"/>
+                        <path d="M5.5 21v-2.2A5.8 5.8 0 0 1 11.3 13h1.4a5.8 5.8 0 0 1 5.8 5.8V21"/>
+                    </svg>
+                </span>
+                <p>
+                    <strong id="livros-emprestados">—</strong>
+                    <span>Emprestados</span>
+                </p>
+            </article>
+        </section>
+
+        <section class="books-content" aria-labelledby="titulo-acervo">
+            <header class="books-section-heading">
+                <div>
+                    <h2 id="titulo-acervo">Acervo cadastrado</h2>
+                    <p id="contagem-resultados">Carregando registros...</p>
+                </div>
+
+                <button class="quiet-action" type="button" id="atualizar-livros">
+                    Atualizar <span aria-hidden="true">↻</span>
+                </button>
+            </header>
+
+            <div class="books-data-panel">
+                <form class="books-toolbar" id="filtros-livros">
+                    <label class="search-field">
+                        <span class="visually-hidden">Buscar por título ou autor</span>
+                        <span class="search-control">
+                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <circle cx="11" cy="11" r="6.5"/>
+                                <path d="m16 16 4 4"/>
+                            </svg>
+                            <input
+                                type="search"
+                                id="filtro-titulo"
+                                placeholder="Buscar por título ou autor"
+                            >
+                        </span>
+                    </label>
+
+                    <label>
+                        <span>Status de leitura</span>
+                        <select id="filtro-status">
+                            <option value="">Todos</option>
+                            <option value="quero ler">Quero ler</option>
+                            <option value="lendo">Lendo</option>
+                            <option value="lido">Lido</option>
+                        </select>
+                    </label>
+
+                    <label>
+                        <span>Disponibilidade</span>
+                        <select id="filtro-disponibilidade">
+                            <option value="">Todas</option>
+                            <option value="true">Disponíveis</option>
+                            <option value="false">Emprestados</option>
+                        </select>
+                    </label>
+
+                    <div class="toolbar-actions">
+                        <button class="filter-action" type="submit">Filtrar</button>
+                        <button class="clear-action" type="button" id="limpar-filtros">
+                            Limpar
+                        </button>
+                    </div>
+                </form>
+
+                <p class="page-feedback" id="mensagem-pagina" aria-live="polite"></p>
+
+                <div class="books-table-wrap">
+                    <table class="books-table">
+                        <thead>
+                            <tr>
+                                <th>Título</th>
+                                <th>Autor</th>
+                                <th>Leitura</th>
+                                <th>Disponibilidade</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="lista-livros">
+                            <tr>
+                                <td colspan="5">Carregando livros...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p class="books-table-footer" id="contagem-rodape">
+                    Carregando acervo...
+                </p>
+            </div>
+        </section>
+    </main>
+
+    <dialog class="book-drawer" id="dialog-livro">
+        <div class="drawer-heading">
+            <div>
+                <h2 id="titulo-formulario">Novo livro</h2>
+            </div>
+
+            <button
+                class="drawer-close"
+                type="button"
+                id="fechar-formulario"
+                aria-label="Fechar formulário"
+            >
+                ×
+            </button>
+        </div>
+
+        <form class="drawer-form" id="formulario-livro">
+            <label>
+                <span>Título</span>
+                <input type="text" id="livro-titulo" required>
+            </label>
+
+            <label>
+                <span>Autor</span>
+                <input type="text" id="livro-autor" required>
+            </label>
+
+            <label>
+                <span>Status de leitura</span>
+                <select id="livro-status" required>
+                    <option value="">Selecione</option>
+                    <option value="quero ler">Quero ler</option>
+                    <option value="lendo">Lendo</option>
+                    <option value="lido">Lido</option>
+                </select>
+            </label>
+
+            <p class="drawer-feedback" id="mensagem-formulario" aria-live="polite"></p>
+
+            <div class="drawer-actions">
+                <button class="cancel-action" type="button" id="cancelar-formulario">
+                    Cancelar
+                </button>
+                <button class="primary-action" type="submit" id="salvar-livro">
+                    Cadastrar livro
+                </button>
+            </div>
+        </form>
+    </dialog>
+
+    <script src="/livros.js?v=2"></script>
+</body>
+</html>

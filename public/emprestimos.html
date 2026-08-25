@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Empréstimos | Biblioteca</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+
+<body class="books-page loans-page">
+    <header class="books-topbar">
+        <a class="books-brand" href="/">
+            <span aria-hidden="true">B</span>
+            <strong>Biblioteca</strong>
+        </a>
+        <nav class="books-nav" aria-label="Navegação principal">
+            <a href="/">Visão geral</a>
+            <a href="/livros.html">Livros</a>
+            <a href="/usuarios.html">Usuários</a>
+            <a class="is-active" href="/emprestimos.html" aria-current="page">Empréstimos</a>
+        </nav>
+        <p class="books-connection" id="api-status" aria-live="polite">
+            <span aria-hidden="true"></span>
+            Conectando
+        </p>
+    </header>
+
+    <main class="books-workspace">
+        <header class="books-page-heading">
+            <div>
+                <h1>Empréstimos</h1>
+                <p>Registre retiradas, acompanhe prazos e confirme devoluções.</p>
+            </div>
+            <button class="primary-action" type="button" id="novo-emprestimo">
+                <span aria-hidden="true">＋</span> Novo empréstimo
+            </button>
+        </header>
+
+        <section class="inventory-summary" aria-label="Resumo de empréstimos">
+            <article>
+                <span class="summary-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M6 3v3m12-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Z"/>
+                        <path d="m9 14 2 2 4-4"/>
+                    </svg>
+                </span>
+                <p><strong id="emprestimos-ativos">—</strong><span>Empréstimos ativos</span></p>
+            </article>
+            <article class="summary-alert">
+                <span class="summary-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M12 3 2.8 20h18.4L12 3Z"/>
+                        <path d="M12 9v5m0 3h.01"/>
+                    </svg>
+                </span>
+                <p><strong id="emprestimos-atrasados">—</strong><span>Em atraso</span></p>
+            </article>
+            <article>
+                <span class="summary-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="9"/>
+                        <path d="m8 12 2.5 2.5L16.5 8"/>
+                    </svg>
+                </span>
+                <p><strong id="emprestimos-devolvidos">—</strong><span>Devolvidos</span></p>
+            </article>
+        </section>
+
+        <section class="books-content" aria-labelledby="titulo-emprestimos">
+            <header class="books-section-heading">
+                <div>
+                    <h2 id="titulo-emprestimos">Histórico de empréstimos</h2>
+                    <p id="contagem-emprestimos">Carregando registros...</p>
+                </div>
+                <button class="quiet-action" type="button" id="atualizar-emprestimos">
+                    Atualizar <span aria-hidden="true">↻</span>
+                </button>
+            </header>
+
+            <div class="books-data-panel">
+                <form class="books-toolbar loans-toolbar" id="filtros-emprestimos">
+                    <label>
+                        <span>Status</span>
+                        <select id="filtro-status">
+                            <option value="">Todos</option>
+                            <option value="ativo">Ativos</option>
+                            <option value="atrasado">Atrasados</option>
+                            <option value="devolvido">Devolvidos</option>
+                        </select>
+                    </label>
+                    <label>
+                        <span>Usuário</span>
+                        <select id="filtro-usuario"><option value="">Todos</option></select>
+                    </label>
+                    <label>
+                        <span>Livro</span>
+                        <select id="filtro-livro"><option value="">Todos</option></select>
+                    </label>
+                    <div class="toolbar-actions">
+                        <button class="filter-action" type="submit">Filtrar</button>
+                        <button class="clear-action" type="button" id="limpar-emprestimos">Limpar</button>
+                    </div>
+                </form>
+
+                <p class="page-feedback" id="mensagem-pagina" aria-live="polite"></p>
+
+                <div class="books-table-wrap">
+                    <table class="books-table loans-table">
+                        <thead>
+                            <tr>
+                                <th>Livro</th>
+                                <th>Usuário</th>
+                                <th>Empréstimo</th>
+                                <th>Prazo</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lista-emprestimos">
+                            <tr><td colspan="6">Carregando empréstimos...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p class="books-table-footer" id="contagem-rodape">Carregando histórico...</p>
+            </div>
+        </section>
+    </main>
+
+    <dialog class="book-drawer" id="dialog-emprestimo">
+        <div class="drawer-heading">
+            <h2>Novo empréstimo</h2>
+            <button class="drawer-close" type="button" id="fechar-emprestimo" aria-label="Fechar formulário">×</button>
+        </div>
+        <form class="drawer-form" id="formulario-emprestimo">
+            <label>
+                <span>Usuário</span>
+                <select id="emprestimo-usuario" required><option value="">Selecione</option></select>
+            </label>
+            <label>
+                <span>Livro disponível</span>
+                <select id="emprestimo-livro" required><option value="">Selecione</option></select>
+            </label>
+            <label>
+                <span>Data prevista de devolução</span>
+                <input type="date" id="emprestimo-data" required>
+            </label>
+            <p class="drawer-feedback" id="mensagem-formulario" aria-live="polite"></p>
+            <div class="drawer-actions">
+                <button class="cancel-action" type="button" id="cancelar-emprestimo">Cancelar</button>
+                <button class="primary-action" type="submit" id="salvar-emprestimo">Registrar empréstimo</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog class="book-drawer" id="dialog-renovacao">
+        <div class="drawer-heading">
+            <h2>Renovar empréstimo</h2>
+            <button class="drawer-close" type="button" id="fechar-renovacao" aria-label="Fechar renovação">×</button>
+        </div>
+        <form class="drawer-form" id="formulario-renovacao">
+            <p class="renew-description" id="descricao-renovacao"></p>
+            <label>
+                <span>Nova data prevista</span>
+                <input type="date" id="renovacao-data" required>
+            </label>
+            <p class="drawer-feedback" id="mensagem-renovacao" aria-live="polite"></p>
+            <div class="drawer-actions">
+                <button class="cancel-action" type="button" id="cancelar-renovacao">Cancelar</button>
+                <button class="primary-action" type="submit" id="salvar-renovacao">Renovar</button>
+            </div>
+        </form>
+    </dialog>
+
+    <script src="/emprestimos.js?v=1"></script>
+</body>
+</html>

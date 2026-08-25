@@ -3,3 +3,4 @@ node_modules/
 .vscode/
 .postman/
 postman/globals/
+.tmp-books-preview/
