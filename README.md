@@ -1,29 +1,42 @@
-# Biblioteca API
+# Biblioteca
 
-API REST para gerenciamento de livros, usuários e empréstimos, desenvolvida como projeto de aprendizado de Node.js, Express e PostgreSQL.
+Este é um projeto que estou desenvolvendo para praticar Node.js, Express e PostgreSQL. Ele começou como uma API de livros e, durante o aprendizado, ganhou cadastro de usuários, controle de empréstimos, testes automatizados e uma interface web.
 
-## Funcionalidades
+## O que já funciona
 
-- CRUD de livros
-- Filtros de livros por título e status
-- CRUD de usuários
-- Validação e normalização de e-mails
-- Cadastro de empréstimos
-- Registro de devoluções
-- Bloqueio de dois empréstimos ativos para o mesmo livro
+- Cadastro, edição, listagem e exclusão de livros
+- Cadastro, edição, listagem e exclusão de usuários
+- Registro, renovação e devolução de empréstimos
+- Filtros de livros e empréstimos
 - Identificação de empréstimos ativos, atrasados e devolvidos
-- Proteção do histórico de empréstimos
-- Testes automatizados
+- Controle da disponibilidade dos livros
+- Validações de dados e regras de negócio
+- Resumo com os números da biblioteca
+- Interface web para utilizar as principais funcionalidades
+- Testes automatizados da API
+
+## O que pratiquei neste projeto
+
+- Criação de uma API REST com Express
+- Conexão do Node.js com PostgreSQL
+- Relacionamentos entre tabelas
+- Consultas SQL com filtros e junções
+- Organização do backend em rotas e controllers
+- Validação dos dados recebidos pela API
+- Testes com Node Test Runner e Supertest
+- Consumo da API no frontend com `fetch`
+- Manipulação do DOM com JavaScript
 
 ## Tecnologias
 
 - Node.js
 - Express
 - PostgreSQL
+- HTML, CSS e JavaScript
 - `pg`
+- `dotenv`
 - Supertest
 - Node Test Runner
-- Dotenv
 
 ## Como executar
 
@@ -33,9 +46,9 @@ API REST para gerenciamento de livros, usuários e empréstimos, desenvolvida co
 npm install
 ```
 
-### 2. Configure as variáveis de ambiente
+### 2. Configure o banco
 
-Copie o arquivo `.env.example` para `.env`.
+Copie o arquivo `.env.example` para um novo arquivo chamado `.env`.
 
 No PowerShell:
 
@@ -43,7 +56,7 @@ No PowerShell:
 Copy-Item .env.example .env
 ```
 
-Preencha o `.env` com os dados do seu PostgreSQL:
+Depois, preencha o `.env` com os dados do seu PostgreSQL:
 
 ```env
 DB_HOST=localhost
@@ -53,13 +66,11 @@ DB_PASSWORD=sua_senha
 DB_NAME=biblioteca
 ```
 
-O arquivo `.env` contém dados privados e não deve ser enviado ao GitHub.
+O `.env` não deve ser enviado para o GitHub porque pode conter dados privados.
 
-### 3. Prepare o banco de dados
+### 3. Crie as tabelas
 
-Crie um banco chamado `biblioteca` no PostgreSQL.
-
-Depois execute os arquivos da pasta `migrations` na ordem numérica:
+Crie no PostgreSQL um banco chamado `biblioteca`. Depois, execute os arquivos da pasta `migrations` na ordem:
 
 ```text
 001_criar_tabela_livros.sql
@@ -68,144 +79,77 @@ Depois execute os arquivos da pasta `migrations` na ordem numérica:
 004_criar_tabela_emprestimos.sql
 ```
 
-### 4. Inicie a API
+### 4. Inicie o projeto
 
 ```bash
 npm start
 ```
 
-A API ficará disponível em:
-
-```text
-http://localhost:3000
-```
+A interface ficará disponível em `http://localhost:3000`.
 
 ## Testes
 
-O PostgreSQL precisa estar disponível e configurado no `.env`.
-
-Execute:
+Com o PostgreSQL configurado e disponível, execute:
 
 ```bash
 npm test
 ```
 
-Os testes utilizam transações e `ROLLBACK`, portanto os registros criados durante os testes não permanecem no banco.
+Os dados criados pelos testes são desfeitos com `ROLLBACK`. As sequências dos IDs do PostgreSQL, porém, continuam avançando, mesmo quando a transação é desfeita.
 
-## Rotas de livros
+## Principais rotas
 
-| Método | Rota | Descrição |
-|---|---|---|
-| GET | `/livros` | Lista os livros |
-| GET | `/livros/:id` | Busca um livro pelo ID |
-| POST | `/livros` | Cadastra um livro |
-| PUT | `/livros/:id` | Atualiza um livro |
-| DELETE | `/livros/:id` | Apaga um livro sem empréstimos |
+### Livros
 
-Filtros disponíveis:
+| Método | Rota | Ação |
+| --- | --- | --- |
+| GET | `/livros` | Listar livros |
+| GET | `/livros/:id` | Buscar um livro |
+| POST | `/livros` | Cadastrar um livro |
+| PUT | `/livros/:id` | Atualizar um livro |
+| DELETE | `/livros/:id` | Excluir um livro |
 
-```http
-GET /livros?status=lido
-GET /livros?titulo=dom
-```
+Os status de leitura permitidos são `quero ler`, `lendo` e `lido`.
 
-Exemplo de cadastro:
+### Usuários
 
-```json
-{
-  "titulo": "Dom Casmurro",
-  "autor": "Machado de Assis",
-  "status": "quero ler"
-}
-```
+| Método | Rota | Ação |
+| --- | --- | --- |
+| GET | `/usuarios` | Listar usuários |
+| GET | `/usuarios/:id` | Buscar um usuário |
+| POST | `/usuarios` | Cadastrar um usuário |
+| PUT | `/usuarios/:id` | Atualizar um usuário |
+| DELETE | `/usuarios/:id` | Excluir um usuário |
 
-Status permitidos:
+### Empréstimos
 
-```text
-quero ler
-lendo
-lido
-```
+| Método | Rota | Ação |
+| --- | --- | --- |
+| GET | `/emprestimos` | Listar e filtrar empréstimos |
+| GET | `/emprestimos/:id` | Buscar um empréstimo |
+| POST | `/emprestimos` | Registrar um empréstimo |
+| PATCH | `/emprestimos/:id/devolucao` | Registrar uma devolução |
+| PATCH | `/emprestimos/:id/renovacao` | Renovar o prazo |
 
-## Rotas de usuários
+A rota `GET /relatorios/resumo` retorna os totais utilizados na página inicial.
 
-| Método | Rota | Descrição |
-|---|---|---|
-| GET | `/usuarios` | Lista os usuários |
-| GET | `/usuarios/:id` | Busca um usuário pelo ID |
-| POST | `/usuarios` | Cadastra um usuário |
-| PUT | `/usuarios/:id` | Atualiza um usuário |
-| DELETE | `/usuarios/:id` | Apaga um usuário sem empréstimos |
+## Algumas regras do sistema
 
-Exemplo de cadastro:
-
-```json
-{
-  "nome": "Ana Souza",
-  "email": "ana@example.com"
-}
-```
-
-## Rotas de empréstimos
-
-| Método | Rota | Descrição |
-|---|---|---|
-| GET | `/emprestimos` | Lista e filtra os empréstimos |
-| GET | `/emprestimos/:id` | Busca um empréstimo pelo ID |
-| POST | `/emprestimos` | Registra um empréstimo |
-| PATCH | `/emprestimos/:id/devolucao` | Registra a devolução |
-| PATCH | `/emprestimos/:id/renovacao` | Renova o prazo de devolução |
-
-Outras rotas:
-
-- `GET /relatorios/resumo`: retorna os totais da biblioteca.
-
-````markdown
-Filtros disponíveis:
-
-```http
-GET /emprestimos?status=ativo
-GET /emprestimos?usuario_id=3
-GET /emprestimos?livro_id=2
-GET /emprestimos?usuario_id=3&status=atrasado
-GET /emprestimos?livro_id=2&status=devolvido
-
-Exemplo de empréstimo:
-
-```json
-{
-  "livro_id": 1,
-  "usuario_id": 1,
-  "data_prevista_devolucao": "2026-09-01"
-}
-```
-
-## Regras de negócio
-
-- Um livro não pode possuir dois empréstimos ativos.
+- Um livro não pode ter dois empréstimos ativos ao mesmo tempo.
 - A data prevista de devolução não pode estar no passado.
-- Um empréstimo devolvido libera o livro para um novo empréstimo.
-- Livros e usuários com histórico de empréstimos não podem ser apagados.
-- O status do empréstimo é calculado como `ativo`, `atrasado` ou `devolvido`.
-- E-mails de usuários não podem ser repetidos.
-- A renovação deve definir uma data posterior ao prazo atual.
-- Empréstimos já devolvidos não podem ser renovados.
+- Um livro volta a ficar disponível depois da devolução.
+- Livros e usuários com histórico de empréstimos não podem ser excluídos.
+- Um empréstimo devolvido não pode ser renovado.
+- A nova data de uma renovação precisa ser posterior ao prazo atual.
+- Não é permitido cadastrar o mesmo e-mail para dois usuários.
 
-## Estrutura do projeto
+## Estrutura
 
 ```text
-src/
-├── config/
-├── controllers/
-├── routes/
-├── utils/
-├── app.js
-└── server.js
-
-migrations/
-test/
+migrations/  scripts utilizados para criar e alterar as tabelas
+public/      arquivos da interface web
+src/         código da API
+test/        testes automatizados
 ```
 
-## Objetivo
-
-Este projeto foi desenvolvido para praticar construção de APIs REST, integração com PostgreSQL, relacionamentos entre tabelas, validações, regras de negócio e testes automatizados.
+Este projeto continua em desenvolvimento enquanto avanço nos estudos de backend e frontend.
